@@ -2,11 +2,10 @@ name: Build
 
 on:
   push:
-    branches:
-      - 'mc/*'
+    branches: [main, 'mc/**']
   pull_request:
-    branches:
-      - 'mc/*'
+    branches: [main, 'mc/**']
+  workflow_dispatch:
 
 jobs:
   build:
