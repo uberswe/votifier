@@ -14,5 +14,5 @@ plugins {
 rootProject.name = 'votifier'
 
 include 'common'
-include 'forge'
+include 'neoforge'
 include 'fabric'

@@ -1,13 +1,13 @@
 package com.uberswe.votifier;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.server.ServerStartingEvent;
-import net.minecraftforge.event.server.ServerStoppingEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -17,7 +17,7 @@ public class Votifier {
     private VotifierServer votifierServer;
 
     public Votifier() {
-        MinecraftForge.EVENT_BUS.register(this);
+        NeoForge.EVENT_BUS.register(this);
     }
 
     @SubscribeEvent
