@@ -50,17 +50,17 @@ public class Votifier {
     @SubscribeEvent
     public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         if (votifierServer == null) return;
-        MinecraftServer server = event.getPlayer().getServer();
+        MinecraftServer server = event.getEntity().getServer();
         if (server == null) return;
 
-        String playerName = event.getPlayer().getGameProfile().getName();
+        String playerName = event.getEntity().getGameProfile().getName();
         List<Vote> votes = votifierServer.getVoteStorage().getAndRemoveVotes(playerName);
         if (!votes.isEmpty()) {
             Constants.LOG.info("Processing {} pending vote(s) for {}", votes.size(), playerName);
             for (Vote vote : votes) {
                 for (String command : votifierServer.getConfig().getCommands()) {
                     String cmd = command.replace("{player}", playerName);
-                    server.getCommands().performCommand(server.createCommandSourceStack(), cmd);
+                    server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), cmd);
                 }
             }
         }

@@ -56,7 +56,7 @@ public class Votifier implements DedicatedServerModInitializer {
             for (Vote vote : votes) {
                 for (String command : votifierServer.getConfig().getCommands()) {
                     String cmd = command.replace("{player}", playerName);
-                    server.getCommands().performCommand(server.createCommandSourceStack(), cmd);
+                    server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), cmd);
                 }
             }
         }
