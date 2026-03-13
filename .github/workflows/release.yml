@@ -1,0 +1,214 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+      changelog:
+        description: 'Release notes (optional)'
+        required: false
+        default: ''
+      publish:
+        description: 'Publish to CurseForge & Modrinth'
+        type: boolean
+        default: false
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: mc/1.18.2
+            game-version: '1.18.2'
+            java: '17'
+            forge-loaders: forge
+          - branch: mc/1.19.2
+            game-version: '1.19.2'
+            java: '17'
+            forge-loaders: forge
+          - branch: mc/1.20.1
+            game-version: '1.20.1'
+            java: '17'
+            forge-loaders: forge
+          - branch: mc/1.21.1
+            game-version: '1.21.1'
+            java: '21'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          # Strip leading 'v' from version tag for Gradle
+          version="${RELEASE_VERSION#v}"
+          ./gradlew build -Pmod_version="${version}"
+
+      - name: Find built JARs
+        id: jars
+        run: |
+          find_jar() {
+            local dir="$1"
+            if [ -d "$dir" ]; then
+              local jar
+              jar=$(find "$dir" -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -1)
+              if [ -n "$jar" ]; then
+                echo "$jar"
+                return 0
+              fi
+            fi
+            return 1
+          }
+
+          forge_jar=$(find_jar forge/build/libs) || true
+          neoforge_jar=$(find_jar neoforge/build/libs) || true
+          fabric_jar=$(find_jar fabric/build/libs) || true
+
+          echo "forge_jar=${forge_jar}" >> "$GITHUB_OUTPUT"
+          echo "neoforge_jar=${neoforge_jar}" >> "$GITHUB_OUTPUT"
+          echo "fabric_jar=${fabric_jar}" >> "$GITHUB_OUTPUT"
+
+          echo "Found JARs:"
+          echo "  forge: ${forge_jar:-none}"
+          echo "  neoforge: ${neoforge_jar:-none}"
+          echo "  fabric: ${fabric_jar:-none}"
+
+      - name: Upload Forge JAR
+        if: steps.jars.outputs.forge_jar != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-${{ matrix.game-version }}
+          path: ${{ steps.jars.outputs.forge_jar }}
+
+      - name: Upload NeoForge JAR
+        if: steps.jars.outputs.neoforge_jar != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: neoforge-${{ matrix.game-version }}
+          path: ${{ steps.jars.outputs.neoforge_jar }}
+
+      - name: Upload Fabric JAR
+        if: steps.jars.outputs.fabric_jar != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: fabric-${{ matrix.game-version }}
+          path: ${{ steps.jars.outputs.fabric_jar }}
+
+      # Publish Forge
+      - name: Publish Forge to CurseForge & Modrinth
+        if: steps.jars.outputs.forge_jar != '' && (github.event_name == 'push' || inputs.publish)
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          name: Votifier ${{ inputs.version || github.ref_name }} (Forge ${{ matrix.game-version }})
+          version: ${{ inputs.version || github.ref_name }}+${{ matrix.game-version }}-forge
+          version-type: release
+          changelog: ${{ inputs.changelog || '' }}
+
+          game-versions: ${{ matrix.game-version }}
+          loaders: ${{ matrix.forge-loaders }}
+
+          files: ${{ steps.jars.outputs.forge_jar }}
+
+      # Publish NeoForge
+      - name: Publish NeoForge to CurseForge & Modrinth
+        if: steps.jars.outputs.neoforge_jar != '' && (github.event_name == 'push' || inputs.publish)
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          name: Votifier ${{ inputs.version || github.ref_name }} (NeoForge ${{ matrix.game-version }})
+          version: ${{ inputs.version || github.ref_name }}+${{ matrix.game-version }}-neoforge
+          version-type: release
+          changelog: ${{ inputs.changelog || '' }}
+
+          game-versions: ${{ matrix.game-version }}
+          loaders: neoforge
+
+          files: ${{ steps.jars.outputs.neoforge_jar }}
+
+      # Publish Fabric
+      - name: Publish Fabric to CurseForge & Modrinth
+        if: steps.jars.outputs.fabric_jar != '' && (github.event_name == 'push' || inputs.publish)
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: ${{ vars.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          name: Votifier ${{ inputs.version || github.ref_name }} (Fabric ${{ matrix.game-version }})
+          version: ${{ inputs.version || github.ref_name }}+${{ matrix.game-version }}-fabric
+          version-type: release
+          changelog: ${{ inputs.changelog || '' }}
+
+          game-versions: ${{ matrix.game-version }}
+          loaders: fabric
+
+          files: ${{ steps.jars.outputs.fabric_jar }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Rename JARs to include MC version
+        run: |
+          mkdir -p release-jars
+          for dir in artifacts/*/; do
+            # dir name is like "forge-1.18.2" or "fabric-1.21.1"
+            dir_name=$(basename "$dir")
+            mc_version=${dir_name##*-}
+            for jar in "$dir"*.jar; do
+              [ -f "$jar" ] || continue
+              filename=$(basename "$jar")
+              # Insert MC version: foo-1.0.0.jar -> foo-mc1.18.2-1.0.0.jar
+              new_name=$(echo "$filename" | sed "s/-\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.jar\)/-mc${mc_version}-\1/")
+              cp "$jar" "release-jars/${new_name}"
+            done
+          done
+          echo "Release JARs:"
+          ls -la release-jars/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version || github.ref_name }}
+          name: Votifier ${{ inputs.version || github.ref_name }}
+          body: ${{ inputs.changelog || '' }}
+          generate_release_notes: true
+          files: release-jars/*.jar
