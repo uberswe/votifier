@@ -1,0 +1,2 @@
+// Root project - plugins are managed via buildSrc convention plugins.
+// Subprojects apply loader-specific plugins directly.

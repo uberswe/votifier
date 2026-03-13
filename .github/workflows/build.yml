@@ -1,0 +1,54 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - 'mc/*'
+  pull_request:
+    branches:
+      - 'mc/*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect Java version
+        id: java
+        run: |
+          JAVA_VERSION=$(grep 'java_version=' gradle.properties | cut -d'=' -f2)
+          echo "version=$JAVA_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ steps.java.outputs.version }}
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        run: ./gradlew build
+
+      - name: Upload Forge artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-jar
+          path: forge/build/libs/*.jar
+        if: hashFiles('forge/build/libs/*.jar') != ''
+
+      - name: Upload Fabric artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fabric-jar
+          path: fabric/build/libs/*.jar
+
+      - name: Upload NeoForge artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neoforge-jar
+          path: neoforge/build/libs/*.jar
+        if: hashFiles('neoforge/build/libs/*.jar') != ''
