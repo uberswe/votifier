@@ -50,7 +50,7 @@ check_jar() {
                 errors=$((errors + 1))
             else
                 local mod_id
-                mod_id=$(jar xf "$jar" META-INF/mods.toml -O 2>/dev/null || unzip -p "$jar" META-INF/mods.toml 2>/dev/null)
+                mod_id=$(unzip -p "$jar" META-INF/mods.toml 2>/dev/null)
                 if ! echo "$mod_id" | grep -q "votifier"; then
                     echo "  ERROR: mods.toml does not contain 'votifier' mod ID"
                     errors=$((errors + 1))
