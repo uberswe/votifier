@@ -1,6 +1,7 @@
 package com.uberswe.votifier;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.io.TempDir;
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -123,6 +125,7 @@ class VotifierServerTest {
 
     @Test
     void v2VoteReceived() throws Exception {
+        String responseJson;
         try (Socket socket = new Socket("127.0.0.1", server.getPort())) {
             socket.setSoTimeout(5000);
             InputStream in = socket.getInputStream();
@@ -159,10 +162,14 @@ class VotifierServerTest {
             out.write(messageBytes.length & 0xFF);
             out.write(messageBytes);
             out.flush();
+
+            // Read JSON response
+            responseJson = readResponse(in);
         }
 
-        // Give server time to process
-        Thread.sleep(500);
+        // Verify response
+        JsonObject response = JsonParser.parseString(responseJson).getAsJsonObject();
+        assertEquals("ok", response.get("status").getAsString());
 
         List<Vote> votes = voteStorage.getAndRemoveVotes("V2Player");
         assertEquals(1, votes.size());
@@ -174,6 +181,7 @@ class VotifierServerTest {
 
     @Test
     void v2BadSignatureRejected() throws Exception {
+        String responseJson;
         try (Socket socket = new Socket("127.0.0.1", server.getPort())) {
             socket.setSoTimeout(5000);
             InputStream in = socket.getInputStream();
@@ -206,9 +214,13 @@ class VotifierServerTest {
             out.write(messageBytes.length & 0xFF);
             out.write(messageBytes);
             out.flush();
+
+            // Read error response
+            responseJson = readResponse(in);
         }
 
-        Thread.sleep(500);
+        JsonObject response = JsonParser.parseString(responseJson).getAsJsonObject();
+        assertEquals("error", response.get("status").getAsString());
 
         List<Vote> votes = voteStorage.getAndRemoveVotes("BadSigPlayer");
         assertTrue(votes.isEmpty(), "Vote with bad signature should be rejected");
@@ -216,6 +228,7 @@ class VotifierServerTest {
 
     @Test
     void v2WrongChallengeRejected() throws Exception {
+        String responseJson;
         try (Socket socket = new Socket("127.0.0.1", server.getPort())) {
             socket.setSoTimeout(5000);
             InputStream in = socket.getInputStream();
@@ -249,9 +262,13 @@ class VotifierServerTest {
             out.write(messageBytes.length & 0xFF);
             out.write(messageBytes);
             out.flush();
+
+            // Read error response
+            responseJson = readResponse(in);
         }
 
-        Thread.sleep(500);
+        JsonObject response = JsonParser.parseString(responseJson).getAsJsonObject();
+        assertEquals("error", response.get("status").getAsString());
 
         List<Vote> votes = voteStorage.getAndRemoveVotes("BadChallengePlayer");
         assertTrue(votes.isEmpty(), "Vote with wrong challenge should be rejected");
@@ -266,5 +283,14 @@ class VotifierServerTest {
         }
         String line = greeting.toString();
         return line.substring("VOTIFIER 2 ".length()).trim();
+    }
+
+    private String readResponse(InputStream in) throws Exception {
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        int b;
+        while ((b = in.read()) != -1) {
+            buf.write(b);
+        }
+        return buf.toString(StandardCharsets.UTF_8);
     }
 }

@@ -72,7 +72,7 @@ public class VotifierServer {
             }
 
             if (firstByte == 0x73 && secondByte == 0x3A) {
-                handleV2(in, challenge);
+                handleV2(in, out, challenge);
             } else {
                 handleV1(in, firstByte, secondByte);
             }
@@ -114,7 +114,7 @@ public class VotifierServer {
         }
     }
 
-    private void handleV2(InputStream in, String challenge) throws Exception {
+    private void handleV2(InputStream in, OutputStream out, String challenge) throws Exception {
         int lengthHigh = in.read();
         int lengthLow = in.read();
         if (lengthHigh == -1 || lengthLow == -1) {
@@ -145,6 +145,7 @@ public class VotifierServer {
 
         if (!expectedSigB64.equals(signature)) {
             Constants.LOG.warn("Invalid v2 vote signature");
+            sendV2Response(out, "error", "signature verification failed");
             return;
         }
 
@@ -153,6 +154,7 @@ public class VotifierServer {
         String voteChallenge = voteData.has("challenge") ? voteData.get("challenge").getAsString() : "";
         if (!challenge.equals(voteChallenge)) {
             Constants.LOG.warn("Invalid v2 vote challenge");
+            sendV2Response(out, "error", "challenge verification failed");
             return;
         }
 
@@ -164,6 +166,17 @@ public class VotifierServer {
         );
         voteStorage.addVote(vote);
         Constants.LOG.info("Received v2 vote from {} for player {}", vote.getServiceName(), vote.getUsername());
+        sendV2Response(out, "ok", null);
+    }
+
+    private void sendV2Response(OutputStream out, String status, String error) throws IOException {
+        JsonObject response = new JsonObject();
+        response.addProperty("status", status);
+        if (error != null) {
+            response.addProperty("error", error);
+        }
+        out.write(response.toString().getBytes(StandardCharsets.UTF_8));
+        out.flush();
     }
 
     public void stop() {
