@@ -64,6 +64,9 @@ jobs:
           version="${RELEASE_VERSION#v}"
           ./gradlew build -Pmod_version="${version}"
 
+      - name: Fetch verify script from main
+        run: git fetch origin main && git checkout origin/main -- scripts/verify-jars.sh
+
       - name: Verify JARs
         run: bash scripts/verify-jars.sh
 
