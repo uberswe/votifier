@@ -1,4 +1,4 @@
-<h1 align="center">Votifier</h1>
+<h1 align="center">Modded Votifier</h1>
 
 <p align="center">
   A server-side Minecraft mod that receives votes from server list websites like
@@ -39,7 +39,7 @@ This is a **server-side only** mod. It does not need to be installed on the clie
 
 1. Install the mod loader for your Minecraft version (NeoForge, Forge, or Fabric)
 2. For Fabric: install [Fabric API](https://modrinth.com/mod/fabric-api)
-3. Drop the Votifier `.jar` for your loader into your server's `mods/` folder
+3. Drop the Modded Votifier `.jar` for your loader into your server's `mods/` folder
 4. Start the server — config files and RSA keys are generated automatically
 5. Copy the public key and token from the server log into your server list website
 
