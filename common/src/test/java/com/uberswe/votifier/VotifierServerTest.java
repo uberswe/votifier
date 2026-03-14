@@ -10,7 +10,6 @@ import org.junit.jupiter.api.io.TempDir;
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -286,18 +285,16 @@ class VotifierServerTest {
     }
 
     private String readResponse(InputStream in) throws Exception {
-        int lengthHigh = in.read();
-        int lengthLow = in.read();
-        assertTrue(lengthHigh != -1 && lengthLow != -1, "Expected 2-byte length prefix in v2 response");
-        int length = (lengthHigh << 8) | lengthLow;
-        byte[] buf = new byte[length];
-        int offset = 0;
-        while (offset < length) {
-            int read = in.read(buf, offset, length - offset);
-            if (read == -1) break;
-            offset += read;
+        // NuVotifier v2 response is raw JSON terminated by \r\n (no magic prefix, no length prefix)
+        StringBuilder sb = new StringBuilder();
+        int b;
+        while ((b = in.read()) != -1) {
+            char c = (char) b;
+            if (c == '\n') break;
+            if (c != '\r') sb.append(c);
         }
-        assertEquals(length, offset, "Response was shorter than declared length");
-        return new String(buf, StandardCharsets.UTF_8);
+        String response = sb.toString();
+        assertFalse(response.isEmpty(), "Expected a JSON response");
+        return response;
     }
 }
