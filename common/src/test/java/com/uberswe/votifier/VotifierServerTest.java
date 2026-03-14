@@ -286,11 +286,18 @@ class VotifierServerTest {
     }
 
     private String readResponse(InputStream in) throws Exception {
-        ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        int b;
-        while ((b = in.read()) != -1) {
-            buf.write(b);
+        int lengthHigh = in.read();
+        int lengthLow = in.read();
+        assertTrue(lengthHigh != -1 && lengthLow != -1, "Expected 2-byte length prefix in v2 response");
+        int length = (lengthHigh << 8) | lengthLow;
+        byte[] buf = new byte[length];
+        int offset = 0;
+        while (offset < length) {
+            int read = in.read(buf, offset, length - offset);
+            if (read == -1) break;
+            offset += read;
         }
-        return buf.toString(StandardCharsets.UTF_8);
+        assertEquals(length, offset, "Response was shorter than declared length");
+        return new String(buf, StandardCharsets.UTF_8);
     }
 }
