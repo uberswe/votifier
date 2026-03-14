@@ -188,4 +188,8 @@ public class VotifierServer {
     public VotifierConfig getConfig() {
         return config;
     }
+
+    public int getPort() {
+        return serverSocket != null ? serverSocket.getLocalPort() : -1;
+    }
 }
