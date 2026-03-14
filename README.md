@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="modded-votifier.png" alt="Modded Votifier" width="150">
+  <img src="modded-votifier-logo.png" alt="Modded Votifier" width="150">
 </p>
 
 <h1 align="center">Modded Votifier</h1>
