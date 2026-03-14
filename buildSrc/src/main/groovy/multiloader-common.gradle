@@ -6,7 +6,7 @@ version = project.mod_version
 group = project.mod_group_id
 
 base {
-    archivesName = "${project.mod_id}-common"
+    archivesName = "modded-${project.mod_id}-common"
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(project.java_version as int)
