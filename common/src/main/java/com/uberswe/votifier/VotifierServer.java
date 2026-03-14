@@ -175,10 +175,7 @@ public class VotifierServer {
         if (error != null) {
             response.addProperty("error", error);
         }
-        byte[] responseBytes = response.toString().getBytes(StandardCharsets.UTF_8);
-        out.write((responseBytes.length >> 8) & 0xFF);
-        out.write(responseBytes.length & 0xFF);
-        out.write(responseBytes);
+        out.write((response + "\r\n").getBytes(StandardCharsets.UTF_8));
         out.flush();
     }
 
